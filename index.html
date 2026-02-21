@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>SYSTEM ERROR</title>
+<link href="https://fonts.googleapis.com/css2?family=VT323&family=Creepster&family=Orbitron:wght@700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<style>
+* {margin:0;padding:0;box-sizing:border-box}
+html, body {overflow:hidden;touch-action:none}
+body {background:#000;font-family:'VT323',monospace;user-select:none;-webkit-user-select:none}
+.hack-screen {display:block;position:fixed;inset:0;background:#0a0a0a;z-index:9999;padding:15px}
+.warning-header {text-align:center;padding:15px;border-bottom:2px solid #f00;margin-bottom:15px}
+.warning-header h1 {color:#f00;font-size:2rem;text-shadow:0 0 15px #f00;animation:blink 0.3s infinite}
+@keyframes blink {50%{opacity:0.3}}
+.warning-header p {color:#fff;font-size:1rem;margin-top:5px}
+.hack-content {display:grid;grid-template-columns:1fr 1fr;gap:10px;height:calc(100vh - 120px)}
+@media (max-width:600px) {.hack-content {grid-template-columns:1fr;height:calc(100vh - 100px)}}
+.hack-left, .hack-right {background:rgba(0,20,0,0.9);border:1px solid #0f0;border-radius:8px;padding:10px;overflow-y:auto;font-size:0.9rem}
+.hack-text {margin-bottom:3px}.cmd{color:#0f0}.warn{color:#ff0}.err{color:#f00}.info{color:#0ff}
+.progress-bar {width:100%;height:12px;background:#111;border:1px solid #0f0;border-radius:6px;margin:5px 0}
+.progress-fill {height:100%;background:#0f0;width:0%;transition:0.2s}
+.file-list {display:flex;flex-wrap:wrap;gap:5px;margin-top:5px}
+.file-item {background:rgba(0,255,0,0.15);border:1px solid #0f0;padding:5px;border-radius:4px;text-align:center;min-width:70px}
+.file-item i {font-size:1.2rem}.file-item span {font-size:0.6rem;display:block}
+/* LOCK SCREEN */
+.lock-screen {display:none;position:fixed;inset:0;background:linear-gradient(135deg,#0a0a0a,#1a0a0a);z-index:99999;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:20px}
+.lock-icon {font-size:4rem;color:#f00;margin-bottom:15px;animation:shake 0.3s infinite}
+@keyframes shake {0%,100%{transform:translateX(0)}25%{transform:translateX(-3px)}75%{transform:translateX(3px)}}
+.lock-screen h1 {font-family:'Orbitron',sans-serif;font-size:2rem;color:#f00;text-shadow:0 0 20px #f00;margin-bottom:8px}
+.lock-screen p {color:#ccc;font-size:1rem;margin-bottom:15px}
+.lock-timer {font-size:1.5rem;color:#f00;margin-bottom:15px;font-family:'Orbitron',sans-serif}
+.lock-btn {background:#f00;color:#fff;border:none;padding:12px 30px;font-size:1.2rem;font-family:'VT323',monospace;border-radius:8px;cursor:pointer;animation:pulse 0.5s infinite}
+@keyframes pulse {0%,100%{transform:scale(1)}50%{transform:scale(1.02)}}
+.enter-pass {background:rgba(255,255,255,0.1);border:2px solid #f00;padding:15px;border-radius:8px;margin-top:15px;width:100%;max-width:250px}
+.enter-pass input {background:#000;border:1px solid #f00;color:#f00;padding:8px;font-size:1.2rem;font-family:'VT323',monospace;width:100%;text-align:center;outline:none;border-radius:4px}
+.enter-pass p {color:#f00;font-size:0.8rem;margin-top:5px;display:none}
+/* JUMPSCARE */
+.jumpscare {display:none;position:fixed;inset:0;background:#000;z-index:999999;align-items:center;justify-content:center;flex-direction:column}
+.jumpscare img {position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.jumpscare-text {position:relative;z-index:1;font-family:'Creepster',cursive;font-size:3rem;color:#f00;text-shadow:0 0 30px #f00,0 0 60px #f00;text-align:center;animation:scare 0.1s infinite}
+@keyframes scare {0%,100%{transform:scale(1)}50%{transform:scale(1.1)}}
+.jumpscare-btn {position:relative;z-index:1;background:#f00;color:#fff;border:none;padding:10px 25px;font-size:1.2rem;border-radius:5px;margin-top:200px;cursor:pointer}
+.matrix-bg {position:fixed;inset:0;z-index:-1;opacity:0.3}
+canvas {display:block}
+/* MOBILE */
+@media (max-width:600px) {
+.warning-header h1 {font-size:1.5rem}
+.warning-header p {font-size:0.8rem}
+.hack-left, .hack-right {font-size:0.75rem}
+.lock-screen h1 {font-size:1.5rem}
+.jumpscare-text {font-size:2rem}
+}
+/* CLICK TO START */
+.click-overlay {display:flex;position:fixed;inset:0;background:rgba(0,0,0,0.9);z-index:999999;align-items:center;justify-content:center;flex-direction:column;cursor:pointer}
+.click-text {color:#f00;font-size:1.5rem;animation:blink 0.5s infinite;text-align:center}
+.click-text i {font-size:3rem;margin-bottom:10px;display:block}
+</style>
+</head>
+<body>
+
+<!-- CLICK TO START OVERLAY -->
+<div class="click-overlay" id="clickOverlay" onclick="startPrank()">
+<div class="click-text">
+<i class="fas fa-exclamation-triangle"></i>
+SYSTEM WARNING<br>
+Click anywhere to continue
+</div>
+</div>
+
+<!-- HACK SCREEN -->
+<div class="hack-screen" id="hackScreen" style="display:none">
+<div class="warning-header">
+<h1><i class="fas fa-skull-crossbones"></i> SYSTEM COMPROMISED</h1>
+<p>Your device has been hacked by RF PLTS HACKER</p>
+</div>
+<div class="hack-content">
+<div class="hack-left" id="console1"></div>
+<div class="hack-right" id="console2"></div>
+</div>
+</div>
+
+<!-- LOCK SCREEN -->
+<div class="lock-screen" id="lockScreen">
+<div class="lock-icon"><i class="fas fa-lock"></i></div>
+<h1>DEVICE LOCKED</h1>
+<p>Your device has been locked!</p>
+<div class="lock-timer" id="lockTimer">00:15</div>
+<button class="lock-btn" onclick="showPassword()">UNLOCK DEVICE</button>
+<div class="enter-pass" id="passForm">
+<input type="password" placeholder="Enter Password" id="passwordInput">
+<p id="wrongPass">Wrong password!</p>
+</div>
+</div>
+
+<!-- JUMPSCARE -->
+<div class="jumpscare" id="jumpscare">
+<img src="jumpscare.gif" alt="SCARY">
+<div class="jumpscare-text">YOUR<br>DEVICE<br>HACKED!</div>
+<button class="jumpscare-btn" onclick="closeJumpscare()">I'M SORRY!</button>
+</div>
+
+<canvas id="matrix" class="matrix-bg"></canvas>
+
+<script>
+// VARIABLES
+const console1 = document.getElementById('console1');
+const console2 = document.getElementById('console2');
+const commands = [
+'[+] Connecting to server...','[+] Bypassing firewall...','[+] Cracking passwords...',
+'[+] Downloading data...','[+] Accessing camera...','[+] Reading messages...',
+'[+] Tracking location...','[+] Stealing files...','[+] Installing malware...',
+'[+] Mining crypto...','[+] Accessing bank...','[+] Uploading data...',
+'[+] Deleting files...','[+] Formatting disk...','[+] COMPLETE'
+];
+const files = [
+{name:'pass.txt',icon:'fa-key'},{name:'photo.zip',icon:'fa-image'},
+{name:'bank.db',icon:'fa-university'},{name:'msg.json',icon:'fa-envelope'},
+{name:'loc.log',icon:'fa-map-marker'},{name:'cookie.ini',icon:'fa-cookie-bite'}
+];
+const ips = ['192.168.1.1','10.0.0.1','172.16.0.1'];
+const locs = ['Jakarta','Bandung','Surabaya','Medan'];
+
+// SOUND
+let hackSound, jumpSound;
+
+function initSounds() {
+hackSound = new Audio('https://cdn.pixabay.com/download/audio/2022/10/28/audio_1d75e6d0d6.mp3?filename=horror-ambience-16828.mp3');
+hackSound.loop = true;
+hackSound.volume = 0.8;
+
+jumpSound = new Audio('https://cdn.pixabay.com/download/audio/2022/03/24/audio_c8c8a73467.mp3?filename=scream-11302.mp3');
+jumpSound.volume = 1;
+}
+
+// START PRANK
+function startPrank() {
+document.getElementById('clickOverlay').style.display = 'none';
+document.getElementById('hackScreen').style.display = 'block';
+
+// Fullscreen
+if(document.documentElement.requestFullscreen) {
+document.documentElement.requestFullscreen().catch(()=>{});
+} else if(document.documentElement.webkitRequestFullscreen) {
+document.documentElement.webkitRequestFullscreen();
+}
+
+// Start sounds
+initSounds();
+hackSound.play().catch(()=>{});
+
+// Start hack
+startHack();
+}
+
+// ADD LINE
+function addLine(container, text, cls='cmd') {
+const div = document.createElement('div');
+div.className = 'hack-text ' + cls;
+div.innerHTML = text;
+container.appendChild(div);
+container.scrollTop = container.scrollHeight;
+}
+
+function addProgress(id) {
+const div = document.createElement('div');
+div.className = 'hack-text';
+div.innerHTML = `<div class="progress-bar"><div class="progress-fill" id="${id}"></div></div>`;
+console1.appendChild(div);
+}
+
+function updateProgress(id, val) {
+const el = document.getElementById(id);
+if(el) el.style.width = val + '%';
+}
+
+// HACK PROCESS
+let line1 = 0, line2 = 0;
+
+function startHack() {
+addProgress('prog1');
+addProgress('prog2');
+
+const int1 = setInterval(() => {
+if(line1 < commands.length) {
+addLine(console1, commands[line1]);
+updateProgress('prog1', (line1/commands.length)*100);
+line1++;
+} else clearInterval(int1);
+}, 120);
+
+setTimeout(() => {
+const int2 = setInterval(() => {
+if(line2 < commands.length) {
+addLine(console2, commands[line2]);
+updateProgress('prog2', (line2/commands.length)*100);
+line2++;
+} else clearInterval(int2);
+}, 150);
+}, 400);
+
+setTimeout(() => {
+addLine(console1, '<br>[+] Files found:', 'cmd');
+const fd = document.createElement('div');
+fd.className = 'file-list';
+files.forEach(f=>{fd.innerHTML+=`<div class="file-item"><i class="fas ${f.icon}"></i><br><span>${f.name}</span></div>`});
+console1.appendChild(fd);
+console1.scrollTop = console1.scrollHeight;
+
+addLine(console2, '<br>[+] IP: ' + ips[Math.floor(Math.random()*ips.length)], 'info');
+addLine(console2, '[+] Location: ' + locs[Math.floor(Math.random()*locs.length)], 'info');
+addLine(console2, '[+] Device: Mobile/Android', 'info');
+}, 2000);
+
+setTimeout(() => {
+addLine(console1, '<br><span class="err">[!!!] SYSTEM DESTROYED [!!!]</span>');
+addLine(console2, '<br><span class="err">[!!!] DATA STOLEN [!!!]</span>');
+hackSound.pause();
+showLock();
+}, 5500);
+}
+
+function showLock() {
+document.getElementById('hackScreen').style.display = 'none';
+document.getElementById('lockScreen').style.display = 'flex';
+startTimer();
+setTimeout(showJumpscare, 6000);
+}
+
+let timeLeft = 15;
+function startTimer() {
+const timer = document.getElementById('lockTimer');
+const int = setInterval(() => {
+timeLeft--;
+timer.innerText = '00:' + (timeLeft < 10 ? '0'+timeLeft : timeLeft);
+if(timeLeft <= 0) clearInterval(int);
+}, 1000);
+}
+
+function showPassword() {
+document.getElementById('passForm').style.display = 'block';
+document.getElementById('passwordInput').focus();
+document.getElementById('passwordInput').oninput = function() {
+this.style.borderColor = '#f00';
+document.getElementById('wrongPass').style.display = 'block';
+};
+}
+
+function closeJumpscare() {
+document.getElementById('jumpscare').style.display = 'none';
+jumpSound.pause();
+jumpSound.currentTime = 0;
+}
+
+function showJumpscare() {
+jumpSound.currentTime = 0;
+jumpSound.play().catch(()=>{});
+document.getElementById('jumpscare').style.display = 'flex';
+if(navigator.vibrate) navigator.vibrate([200,100,200,100,200]);
+}
+
+// MATRIX
+const canvas = document.getElementById('matrix');
+const ctx = canvas.getContext('2d');
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
+const chars = '01アイウエオカキクケコ';
+const fontSize = 12;
+const columns = canvas.width/fontSize;
+const drops = Array(Math.floor(columns)).fill(1);
+
+function drawMatrix() {
+ctx.fillStyle = 'rgba(0, 0, 0, 0.05)';
+ctx.fillRect(0, 0, canvas.width, canvas.height);
+ctx.fillStyle = '#0f0';
+ctx.font = fontSize + 'px monospace';
+for(let i=0; i<drops.length; i++) {
+const text = chars[Math.floor(Math.random()*chars.length)];
+ctx.fillText(text, i*fontSize, drops[i]*fontSize);
+if(drops[i]*fontSize > canvas.height && Math.random() > 0.975) drops[i] = 0;
+drops[i]++;
+}
+requestAnimationFrame(drawMatrix);
+}
+drawMatrix();
+</script>
+</body>
+</html>
