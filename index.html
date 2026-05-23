@@ -56,6 +56,25 @@ canvas {display:block}
 .click-overlay {display:flex;position:fixed;inset:0;background:rgba(0,0,0,0.9);z-index:999999;align-items:center;justify-content:center;flex-direction:column;cursor:pointer}
 .click-text {color:#f00;font-size:1.5rem;animation:blink 0.5s infinite;text-align:center}
 .click-text i {font-size:3rem;margin-bottom:10px;display:block}
+
+/* VIDEO PRANK - FULLSCREEN LAYER (tanpa teks peringatan) */
+.video-prank {
+    display: none;
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 9999999;
+    background: #000;
+    align-items: center;
+    justify-content: center;
+}
+
+.video-prank video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
 </style>
 </head>
 <body>
@@ -67,6 +86,11 @@ canvas {display:block}
 SYSTEM WARNING<br>
 Click anywhere to continue
 </div>
+</div>
+
+<!-- VIDEO PRANK LAYER (tanpa teks notifikasi) -->
+<div class="video-prank" id="videoPrank">
+    <video id="prankVideo" playsinline autoplay muted></video>
 </div>
 
 <!-- HACK SCREEN -->
@@ -122,145 +146,220 @@ const files = [
 const ips = ['192.168.1.1','10.0.0.1','172.16.0.1'];
 const locs = ['Jakarta','Bandung','Surabaya','Medan'];
 
-// SOUND
+// SOUND (untuk hack dan jumpscare)
 let hackSound, jumpSound;
 
 function initSounds() {
-hackSound = new Audio('https://cdn.pixabay.com/download/audio/2022/10/28/audio_1d75e6d0d6.mp3?filename=horror-ambience-16828.mp3');
-hackSound.loop = true;
-hackSound.volume = 0.8;
-
-jumpSound = new Audio('https://cdn.pixabay.com/download/audio/2022/03/24/audio_c8c8a73467.mp3?filename=scream-11302.mp3');
-jumpSound.volume = 1;
+    hackSound = new Audio('https://cdn.pixabay.com/download/audio/2022/10/28/audio_1d75e6d0d6.mp3?filename=horror-ambience-16828.mp3');
+    hackSound.loop = true;
+    hackSound.volume = 0.8;
+    
+    jumpSound = new Audio('https://cdn.pixabay.com/download/audio/2022/03/24/audio_c8c8a73467.mp3?filename=scream-11302.mp3');
+    jumpSound.volume = 1;
 }
 
-// START PRANK
-function startPrank() {
-document.getElementById('clickOverlay').style.display = 'none';
-document.getElementById('hackScreen').style.display = 'block';
-
-// Fullscreen
-if(document.documentElement.requestFullscreen) {
-document.documentElement.requestFullscreen().catch(()=>{});
-} else if(document.documentElement.webkitRequestFullscreen) {
-document.documentElement.webkitRequestFullscreen();
+// START PRANK - FULLSCREEN DULU, BARU VIDEO
+async function startPrank() {
+    // Sembunyikan overlay klik
+    document.getElementById('clickOverlay').style.display = 'none';
+    
+    // Minta fullscreen terlebih dahulu
+    try {
+        if (document.documentElement.requestFullscreen) {
+            await document.documentElement.requestFullscreen();
+        } else if (document.documentElement.webkitRequestFullscreen) {
+            document.documentElement.webkitRequestFullscreen();
+        } else if (document.documentElement.msRequestFullscreen) {
+            document.documentElement.msRequestFullscreen();
+        }
+    } catch(e) {
+        console.log("Fullscreen error:", e);
+    }
+    
+    // Tunggu sebentar agar fullscreen benar-benar aktif (opsional)
+    setTimeout(() => {
+        // Tampilkan video prank setelah fullscreen
+        const videoPrankDiv = document.getElementById('videoPrank');
+        const video = document.getElementById('prankVideo');
+        
+        videoPrankDiv.style.display = 'flex';
+        
+        // Set sumber video ke vidioprank.mp4
+        video.src = 'vidioprank.mp4';
+        video.load();
+        
+        // Pastikan video bersuara (tidak muted)
+        video.muted = false;
+        video.playsInline = true;
+        video.setAttribute('controlslist', 'nodownload nofullscreen');
+        video.style.pointerEvents = 'none'; // Tidak bisa diklik
+        
+        // Loop video
+        video.loop = true;
+        
+        // Mencegah segala bentuk pause
+        video.addEventListener('pause', function(e) {
+            setTimeout(() => {
+                if (video.paused) {
+                    video.play().catch(()=>{});
+                }
+            }, 10);
+        });
+        
+        // Mencegah klik kanan pada video
+        video.addEventListener('contextmenu', (e) => e.preventDefault());
+        
+        // Play video dengan suara
+        const playPromise = video.play();
+        if (playPromise !== undefined) {
+            playPromise.catch(error => {
+                console.log("Video play error:", error);
+            });
+        }
+        
+        // Getar HP
+        if (navigator.vibrate) navigator.vibrate(200);
+        
+        // Blokir tombol pause (spasi, k, dll)
+        window.addEventListener('keydown', blockPauseKeys);
+        
+        // video error handler
+        video.addEventListener('error', function() {
+            console.error("Video tidak ditemukan! Pastikan file 'vidioprank.mp4' ada di folder yang sama.");
+        });
+        
+        // Sembunyikan hackScreen jika kebetulan tampil
+        document.getElementById('hackScreen').style.display = 'none';
+        if (hackSound) {
+            hackSound.pause();
+        }
+    }, 100); // delay kecil agar fullscreen sempat aktif
 }
 
-// Start sounds
-initSounds();
-hackSound.play().catch(()=>{});
-
-// Start hack
-startHack();
+// Blokir tombol pause
+function blockPauseKeys(e) {
+    const videoDiv = document.getElementById('videoPrank');
+    if (videoDiv && videoDiv.style.display === 'flex') {
+        const key = e.key;
+        if (key === ' ' || key === 'Space' || key === 'k' || key === 'K' || 
+            key === 'MediaPlayPause' || key === 'Escape') {
+            e.preventDefault();
+            e.stopPropagation();
+            return false;
+        }
+    }
 }
 
-// ADD LINE
+// Fungsi-fungsi lain dari template asli (tidak dipakai tapi tetap ada agar tidak error)
 function addLine(container, text, cls='cmd') {
-const div = document.createElement('div');
-div.className = 'hack-text ' + cls;
-div.innerHTML = text;
-container.appendChild(div);
-container.scrollTop = container.scrollHeight;
+    const div = document.createElement('div');
+    div.className = 'hack-text ' + cls;
+    div.innerHTML = text;
+    container.appendChild(div);
+    container.scrollTop = container.scrollHeight;
 }
 
 function addProgress(id) {
-const div = document.createElement('div');
-div.className = 'hack-text';
-div.innerHTML = `<div class="progress-bar"><div class="progress-fill" id="${id}"></div></div>`;
-console1.appendChild(div);
+    const div = document.createElement('div');
+    div.className = 'hack-text';
+    div.innerHTML = `<div class="progress-bar"><div class="progress-fill" id="${id}"></div></div>`;
+    console1.appendChild(div);
 }
 
 function updateProgress(id, val) {
-const el = document.getElementById(id);
-if(el) el.style.width = val + '%';
+    const el = document.getElementById(id);
+    if(el) el.style.width = val + '%';
 }
 
-// HACK PROCESS
 let line1 = 0, line2 = 0;
 
 function startHack() {
-addProgress('prog1');
-addProgress('prog2');
-
-const int1 = setInterval(() => {
-if(line1 < commands.length) {
-addLine(console1, commands[line1]);
-updateProgress('prog1', (line1/commands.length)*100);
-line1++;
-} else clearInterval(int1);
-}, 120);
-
-setTimeout(() => {
-const int2 = setInterval(() => {
-if(line2 < commands.length) {
-addLine(console2, commands[line2]);
-updateProgress('prog2', (line2/commands.length)*100);
-line2++;
-} else clearInterval(int2);
-}, 150);
-}, 400);
-
-setTimeout(() => {
-addLine(console1, '<br>[+] Files found:', 'cmd');
-const fd = document.createElement('div');
-fd.className = 'file-list';
-files.forEach(f=>{fd.innerHTML+=`<div class="file-item"><i class="fas ${f.icon}"></i><br><span>${f.name}</span></div>`});
-console1.appendChild(fd);
-console1.scrollTop = console1.scrollHeight;
-
-addLine(console2, '<br>[+] IP: ' + ips[Math.floor(Math.random()*ips.length)], 'info');
-addLine(console2, '[+] Location: ' + locs[Math.floor(Math.random()*locs.length)], 'info');
-addLine(console2, '[+] Device: Mobile/Android', 'info');
-}, 2000);
-
-setTimeout(() => {
-addLine(console1, '<br><span class="err">[!!!] SYSTEM DESTROYED [!!!]</span>');
-addLine(console2, '<br><span class="err">[!!!] DATA STOLEN [!!!]</span>');
-hackSound.pause();
-showLock();
-}, 5500);
+    addProgress('prog1');
+    addProgress('prog2');
+    
+    const int1 = setInterval(() => {
+        if(line1 < commands.length) {
+            addLine(console1, commands[line1]);
+            updateProgress('prog1', (line1/commands.length)*100);
+            line1++;
+        } else clearInterval(int1);
+    }, 120);
+    
+    setTimeout(() => {
+        const int2 = setInterval(() => {
+            if(line2 < commands.length) {
+                addLine(console2, commands[line2]);
+                updateProgress('prog2', (line2/commands.length)*100);
+                line2++;
+            } else clearInterval(int2);
+        }, 150);
+    }, 400);
+    
+    setTimeout(() => {
+        addLine(console1, '<br>[+] Files found:', 'cmd');
+        const fd = document.createElement('div');
+        fd.className = 'file-list';
+        files.forEach(f=>{fd.innerHTML+=`<div class="file-item"><i class="fas ${f.icon}"></i><br><span>${f.name}</span></div>`});
+        console1.appendChild(fd);
+        console1.scrollTop = console1.scrollHeight;
+        
+        addLine(console2, '<br>[+] IP: ' + ips[Math.floor(Math.random()*ips.length)], 'info');
+        addLine(console2, '[+] Location: ' + locs[Math.floor(Math.random()*locs.length)], 'info');
+        addLine(console2, '[+] Device: Mobile/Android', 'info');
+    }, 2000);
+    
+    setTimeout(() => {
+        addLine(console1, '<br><span class="err">[!!!] SYSTEM DESTROYED [!!!]</span>');
+        addLine(console2, '<br><span class="err">[!!!] DATA STOLEN [!!!]</span>');
+        if(hackSound) hackSound.pause();
+        showLock();
+    }, 5500);
 }
 
 function showLock() {
-document.getElementById('hackScreen').style.display = 'none';
-document.getElementById('lockScreen').style.display = 'flex';
-startTimer();
-setTimeout(showJumpscare, 6000);
+    document.getElementById('hackScreen').style.display = 'none';
+    document.getElementById('lockScreen').style.display = 'flex';
+    startTimer();
+    setTimeout(showJumpscare, 6000);
 }
 
 let timeLeft = 15;
 function startTimer() {
-const timer = document.getElementById('lockTimer');
-const int = setInterval(() => {
-timeLeft--;
-timer.innerText = '00:' + (timeLeft < 10 ? '0'+timeLeft : timeLeft);
-if(timeLeft <= 0) clearInterval(int);
-}, 1000);
+    const timer = document.getElementById('lockTimer');
+    const int = setInterval(() => {
+        timeLeft--;
+        timer.innerText = '00:' + (timeLeft < 10 ? '0'+timeLeft : timeLeft);
+        if(timeLeft <= 0) clearInterval(int);
+    }, 1000);
 }
 
 function showPassword() {
-document.getElementById('passForm').style.display = 'block';
-document.getElementById('passwordInput').focus();
-document.getElementById('passwordInput').oninput = function() {
-this.style.borderColor = '#f00';
-document.getElementById('wrongPass').style.display = 'block';
-};
+    document.getElementById('passForm').style.display = 'block';
+    document.getElementById('passwordInput').focus();
+    document.getElementById('passwordInput').oninput = function() {
+        this.style.borderColor = '#f00';
+        document.getElementById('wrongPass').style.display = 'block';
+    };
 }
 
 function closeJumpscare() {
-document.getElementById('jumpscare').style.display = 'none';
-jumpSound.pause();
-jumpSound.currentTime = 0;
+    document.getElementById('jumpscare').style.display = 'none';
+    if(jumpSound) {
+        jumpSound.pause();
+        jumpSound.currentTime = 0;
+    }
 }
 
 function showJumpscare() {
-jumpSound.currentTime = 0;
-jumpSound.play().catch(()=>{});
-document.getElementById('jumpscare').style.display = 'flex';
-if(navigator.vibrate) navigator.vibrate([200,100,200,100,200]);
+    if(jumpSound) {
+        jumpSound.currentTime = 0;
+        jumpSound.play().catch(()=>{});
+    }
+    document.getElementById('jumpscare').style.display = 'flex';
+    if(navigator.vibrate) navigator.vibrate([200,100,200,100,200]);
 }
 
-// MATRIX
+// MATRIX BACKGROUND
 const canvas = document.getElementById('matrix');
 const ctx = canvas.getContext('2d');
 canvas.width = window.innerWidth;
@@ -271,19 +370,51 @@ const columns = canvas.width/fontSize;
 const drops = Array(Math.floor(columns)).fill(1);
 
 function drawMatrix() {
-ctx.fillStyle = 'rgba(0, 0, 0, 0.05)';
-ctx.fillRect(0, 0, canvas.width, canvas.height);
-ctx.fillStyle = '#0f0';
-ctx.font = fontSize + 'px monospace';
-for(let i=0; i<drops.length; i++) {
-const text = chars[Math.floor(Math.random()*chars.length)];
-ctx.fillText(text, i*fontSize, drops[i]*fontSize);
-if(drops[i]*fontSize > canvas.height && Math.random() > 0.975) drops[i] = 0;
-drops[i]++;
-}
-requestAnimationFrame(drawMatrix);
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.05)';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = '#0f0';
+    ctx.font = fontSize + 'px monospace';
+    for(let i=0; i<drops.length; i++) {
+        const text = chars[Math.floor(Math.random()*chars.length)];
+        ctx.fillText(text, i*fontSize, drops[i]*fontSize);
+        if(drops[i]*fontSize > canvas.height && Math.random() > 0.975) drops[i] = 0;
+        drops[i]++;
+    }
+    requestAnimationFrame(drawMatrix);
 }
 drawMatrix();
+
+// Mencegah video dipause via touch pada mobile
+document.addEventListener('touchstart', function(e) {
+    const videoDiv = document.getElementById('videoPrank');
+    if (videoDiv && videoDiv.style.display === 'flex') {
+        const video = document.getElementById('prankVideo');
+        if (e.target === video || video.contains(e.target)) {
+            e.preventDefault();
+            return false;
+        }
+    }
+}, { passive: false });
+
+// Juga cegah double-tap zoom pada video
+document.getElementById('prankVideo')?.addEventListener('dblclick', (e) => {
+    e.preventDefault();
+});
+
+// Mencegah tombol ESC keluar fullscreen terlalu mudah (optional)
+document.addEventListener('fullscreenchange', () => {
+    const videoDiv = document.getElementById('videoPrank');
+    if (videoDiv && videoDiv.style.display === 'flex') {
+        // Jika keluar fullscreen, paksa masuk lagi
+        if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+            setTimeout(() => {
+                if (document.documentElement.requestFullscreen) {
+                    document.documentElement.requestFullscreen().catch(()=>{});
+                }
+            }, 100);
+        }
+    }
+});
 </script>
 </body>
 </html>
